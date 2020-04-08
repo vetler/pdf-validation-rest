@@ -1,0 +1,55 @@
+name: Continous deployment of master
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 14
+      uses: actions/setup-java@v1
+      with:
+        java-version: 14
+    
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      
+    - name: Build with Gradle
+      run: ./gradlew build
+      
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: Package
+        path: build/libs
+
+    - name: Build Docker image
+      run: |-
+        docker build --tag "gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.SERVICE_NAME }}-image:$GITHUB_SHA" .
+
+    - uses: actions/checkout@v2
+    - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        version: '285.0.0'
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
+
+    - run: |-
+        gcloud --quiet auth configure-docker
+
+    - name: Publish Docker image
+      run: |-
+        docker push "gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.SERVICE_NAME }}-image:$GITHUB_SHA"
+
+    - name: Deploy
+      run: |-
+        gcloud run deploy ${{ secrets.SERVICE_NAME }} \
+          --region europe-north1 \
+          --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.SERVICE_NAME }}-image:$GITHUB_SHA \
+          --platform managed

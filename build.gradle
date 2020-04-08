@@ -1,0 +1,73 @@
+plugins {
+    id "com.github.hierynomus.license" version "0.15.0"
+    id "com.github.johnrengelman.shadow" version "5.2.0"
+    id "com.palantir.consistent-versions" version "1.17.3"
+    id "net.ltgt.apt-eclipse" version "0.21"
+
+    id "application"
+}
+
+version "0.1"
+group "pdfvalidator.services.rest"
+
+repositories {
+    mavenCentral()
+    maven { url "https://jcenter.bintray.com" }
+}
+
+configurations {
+    compile { transitive = false }
+    // for dependencies that are needed for development only
+    developmentOnly
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_14
+    targetCompatibility = JavaVersion.VERSION_14
+}
+
+dependencies {
+
+    annotationProcessor platform("io.micronaut:micronaut-bom:$micronautVersion")
+    annotationProcessor "io.micronaut:micronaut-inject-java"
+    annotationProcessor "io.micronaut:micronaut-validation"
+    implementation("com.google.guava:guava:28.2-jre")
+    implementation platform("io.micronaut:micronaut-bom:$micronautVersion")
+    implementation "io.micronaut:micronaut-inject"
+    implementation "io.micronaut:micronaut-validation"
+    implementation "io.micronaut:micronaut-runtime"
+    implementation "javax.annotation:javax.annotation-api"
+    implementation "io.micronaut:micronaut-http-server-netty"
+    implementation "io.micronaut:micronaut-http-client"
+    implementation "org.verapdf:validation-model:1.14.105"
+    runtimeOnly "ch.qos.logback:logback-classic:1.2.3"
+
+    testImplementation "org.junit.jupiter:junit-jupiter-api"
+    testImplementation "io.micronaut.test:micronaut-test-junit5"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
+}
+
+test.classpath += configurations.developmentOnly
+
+mainClassName = "pdfvalidator.services.rest.Application"
+// use JUnit 5 platform
+test {
+    useJUnitPlatform()
+}
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+    options.compilerArgs.add('-parameters')
+}
+
+shadowJar {
+    mergeServiceFiles()
+}
+
+tasks.withType(JavaExec) {
+    classpath += configurations.developmentOnly
+    jvmArgs('-noverify', '-XX:TieredStopAtLevel=1', '-Dcom.sun.management.jmxremote')
+}
+
+license {
+    exclude "**/*.txt"
+}

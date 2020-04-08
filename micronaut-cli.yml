@@ -1,0 +1,5 @@
+profile: service
+defaultPackage: pdf.validation.rest
+---
+testFramework: junit
+sourceLanguage: java
