@@ -240,7 +240,7 @@ public class PDFValidationController {
 
     @Post(value = "/validate", consumes = MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
-    public Single<HttpResponse<Validator.Result>> validate(Optional<String> flavour, StreamingFileUpload file) {
+    public Single<HttpResponse<Validator.Validation>> validate(Optional<String> flavour, StreamingFileUpload file) {
         try {
             var tempFile = File.createTempFile(file.getFilename(), ".pdf");
 
@@ -264,9 +264,9 @@ public class PDFValidationController {
         }
     }
 
-    private HttpResponse<Validator.Result> uploadFailedResult() {
-        return HttpResponse.<Validator.Result>status(HttpStatus.CONFLICT).body(Validator.Result.build().with(b -> {
-            b.result = Validator.Result.Result.UNKNOWN;
+    private HttpResponse<Validator.Validation> uploadFailedResult() {
+        return HttpResponse.<Validator.Validation>status(HttpStatus.CONFLICT).body(Validator.Validation.build().with(b -> {
+            b.result = Validator.Validation.Result.UNKNOWN;
             b.errors = Collections.singletonList("Upload failed");
         }).build());
     }

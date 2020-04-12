@@ -236,47 +236,47 @@ public class Validator {
         return t.getRuleId().getSpecification() + ", " + t.getRuleId().getClause() + ", test #" + t.getRuleId().getTestNumber() + ": " + t.getMessage();
     }
 
-    public Result validate(InputStream stream) {
+    public Validation validate(InputStream stream) {
         return validate(Optional.empty(), stream);
     }
 
-    public Result validate(PDFAFlavour flavour, InputStream stream) {
+    public Validation validate(PDFAFlavour flavour, InputStream stream) {
         return validate(Optional.of(flavour), stream);
     }
 
-    private Result validate(Optional<PDFAFlavour> possibleFlavour, InputStream stream) {
+    private Validation validate(Optional<PDFAFlavour> possibleFlavour, InputStream stream) {
         try (PDFAParser parser = possibleFlavour.isPresent()
                 ? Foundries.defaultInstance().createParser(stream, possibleFlavour.get())
                 : Foundries.defaultInstance().createParser(stream)) {
             var validator = Foundries.defaultInstance().createValidator(parser.getFlavour(), false);
             var result = validator.validate(parser);
             if (result.isCompliant()) {
-                return Validator.Result.build().with(builder -> {
-                    builder.result = Result.Result.VALID;
+                return Validation.build().with(builder -> {
+                    builder.result = Validation.Result.VALID;
                     builder.flavour = result.getPDFAFlavour();
                 }).build();
             } else {
-                return Validator.Result.build().with(builder -> {
-                    builder.result = Result.Result.INVALID;
+                return Validation.build().with(builder -> {
+                    builder.result = Validation.Result.INVALID;
                     builder.flavour = result.getPDFAFlavour();
                     builder.errors = result.getTestAssertions().stream().map(Validator::testAssertionToString).collect(Collectors.toList());
                 }).build();
             }
         } catch (EncryptedPdfException | ModelParsingException | IOException | ValidationException e) {
-            return Validator.Result.build().with(builder -> {
-                builder.result = Result.Result.INVALID;
+            return Validation.build().with(builder -> {
+                builder.result = Validation.Result.INVALID;
                 builder.errors = singletonList(e.getMessage());
             }).build();
         }
     }
 
     @Introspected
-    public static class Result {
+    public static class Validation {
         public final Result result;
         public final PDFAFlavour flavour;
         public final List<String> errors;
 
-        public Result(Result result, PDFAFlavour flavour, List<String> errors) {
+        public Validation(Result result, PDFAFlavour flavour, List<String> errors) {
             this.result = result;
             this.flavour = flavour;
             this.errors = errors;
@@ -313,8 +313,8 @@ public class Validator {
                 return this;
             }
 
-            public Validator.Result build() {
-                return new Validator.Result(result, flavour, errors);
+            public Validation build() {
+                return new Validation(result, flavour, errors);
             }
         }
     }

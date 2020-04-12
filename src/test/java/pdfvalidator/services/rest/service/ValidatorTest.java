@@ -207,8 +207,8 @@ import org.junit.jupiter.api.Test;
 import org.verapdf.pdfa.flavours.PDFAFlavour;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static pdfvalidator.services.rest.service.Validator.Result.Result.INVALID;
-import static pdfvalidator.services.rest.service.Validator.Result.Result.VALID;
+import static pdfvalidator.services.rest.service.Validator.Validation.Result.INVALID;
+import static pdfvalidator.services.rest.service.Validator.Validation.Result.VALID;
 
 
 public class ValidatorTest {
