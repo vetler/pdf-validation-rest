@@ -1,4 +1,5 @@
 # PDF Validator Services REST
+![CD](https://github.com/vetler/pdfvalidator-services-rest/workflows/Continous%20deployment%20of%20master/badge.svg)
 
 ## How to use
 
