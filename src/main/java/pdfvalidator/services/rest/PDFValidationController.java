@@ -203,11 +203,11 @@
  */
 package pdfvalidator.services.rest;
 
+import com.google.common.util.concurrent.RateLimiter;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.multipart.StreamingFileUpload;
@@ -227,40 +227,41 @@ import java.util.Optional;
 public class PDFValidationController {
     private static final Logger LOGGER = LoggerFactory.getLogger(PDFValidationController.class);
     private final Validator validator;
+    private final RateLimiter rateLimiter = RateLimiter.create(1);
+
 
     PDFValidationController(Validator validator) {
         this.validator = validator;
     }
 
-    @Get
-    @Produces(MediaType.TEXT_PLAIN)
-    public String index() {
-        return "Ain't nothing here";
-    }
-
     @Post(value = "/validate", consumes = MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     public Single<HttpResponse<Validator.Validation>> validate(Optional<String> flavour, StreamingFileUpload file) {
-        try {
-            var tempFile = File.createTempFile(file.getFilename(), ".pdf");
 
-            return Single.fromPublisher(file.transferTo(tempFile))
-                    .map(success -> {
-                        if (success) {
-                            try (FileInputStream stream = new FileInputStream(tempFile)) {
-                                return HttpResponse.ok(
-                                        flavour.isPresent()
-                                                ? validator.validate(PDFAFlavour.fromString(flavour.get()), stream)
-                                                : validator.validate(stream));
+        if (rateLimiter.tryAcquire()) {
+            try {
+                var tempFile = File.createTempFile(file.getFilename(), ".pdf");
+
+                return Single.fromPublisher(file.transferTo(tempFile))
+                        .map(success -> {
+                            if (success) {
+                                try (FileInputStream stream = new FileInputStream(tempFile)) {
+                                    return HttpResponse.ok(
+                                            flavour.isPresent()
+                                                    ? validator.validate(PDFAFlavour.fromString(flavour.get()), stream)
+                                                    : validator.validate(stream));
+                                }
+                            } else {
+                                return uploadFailedResult();
                             }
-                        } else {
-                            return uploadFailedResult();
-                        }
-                    });
+                        });
 
-        } catch (IOException e) {
-            LOGGER.warn(e.getMessage(), e);
-            return Single.fromCallable(this::uploadFailedResult);
+            } catch (IOException e) {
+                LOGGER.warn(e.getMessage(), e);
+                return Single.fromCallable(this::uploadFailedResult);
+            }
+        } else {
+            return Single.fromCallable(() -> HttpResponse.status(HttpStatus.TOO_MANY_REQUESTS));
         }
     }
 
